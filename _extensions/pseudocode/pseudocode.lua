@@ -1,11 +1,44 @@
 local function ensure_html_deps()
+
   quarto.doc.include_file("in-header", "in_header.html")
   quarto.doc.include_file("after-body", "after_body.html")
 end
 
 local function ensure_latex_deps()
-  quarto.doc.use_latex_package("algorithm")
-  quarto.doc.use_latex_package("algpseudocode")
+  quarto.doc.addHtmlDependency({
+      name = "pseudocode",
+      version = "2.4",
+      scripts = { "pseudocode.min.js" },
+      stylesheets = { "pseudocode.min.css" }
+  })
+  -- generate the initialization script with the correct options
+  local scriptTag = [[<script>
+  (function(d) {
+    d.querySelectorAll(".pseudocode-container").forEach(function(el) {
+      let pseudocodeOptions = {
+        indentSize: el.dataset.indentSize || "1.2em",
+        commentDelimiter: el.dataset.commentDelimiter || "//",
+        lineNumber: el.dataset.lineNumber === "true" ? true : false,
+        lineNumberPunc: el.dataset.lineNumberPunc || ":",
+        noEnd: el.dataset.noEnd === "true" ? true : false,
+        titlePrefix: el.dataset.algTitle || "Algorithm"
+      };
+      pseudocode.renderElement(el.querySelector(".pseudocode"), pseudocodeOptions);
+    });
+  })(document);
+  (function(d) {
+    d.querySelectorAll(".pseudocode-container").forEach(function(el) {
+      titleSpan = el.querySelector(".ps-root > .ps-algorithm > .ps-line > .ps-keyword")
+      titlePrefix = el.dataset.algTitle;
+      titleIndex = el.dataset.chapterLevel ? el.dataset.chapterLevel + "." + el.dataset.pseudocodeIndex : el.dataset.pseudocodeIndex;
+      titleSpan.innerHTML = titlePrefix + " " + titleIndex + " ";
+    });
+  })(document);
+</script>]]
+
+  -- inject the rendering code
+  quarto.doc.include_text("after-body", scriptTag)
+
 end
 
 local function extract_source_code_options(source_code, option_type)
